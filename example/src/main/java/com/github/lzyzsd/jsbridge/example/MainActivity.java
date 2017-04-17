@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -15,7 +16,6 @@ import com.github.lzyzsd.jsbridge.BridgeHandler;
 import com.github.lzyzsd.jsbridge.BridgeWebView;
 import com.github.lzyzsd.jsbridge.CallBackFunction;
 import com.github.lzyzsd.jsbridge.DefaultHandler;
-import com.google.gson.Gson;
 
 public class MainActivity extends Activity implements OnClickListener {
 
@@ -29,14 +29,13 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	ValueCallback<Uri> mUploadMessage;
 
-    static class Location {
-        String address;
-    }
+
 
     static class User {
         String name;
-        Location location;
-        String testStr;
+        String phone;
+        String userId;
+        String token;
     }
 
 	@Override
@@ -71,33 +70,107 @@ public class MainActivity extends Activity implements OnClickListener {
 		});
 
 		webView.loadUrl("file:///android_asset/demo.html");
+        setBridgeHandle();
 
-		webView.registerHandler("submitFromWeb", new BridgeHandler() {
+//		webView.registerHandler("submitFromWeb", new BridgeHandler() {
+//
+//			@Override
+//			public void handler(String data, CallBackFunction function) {
+//				Log.i(TAG, "handler = submitFromWeb, data from web = " + data);
+//                function.onCallBack("submitFromWeb exe, response data 中文 from Java");
+//			}
+//
+//		});
 
-			@Override
-			public void handler(String data, CallBackFunction function) {
-				Log.i(TAG, "handler = submitFromWeb, data from web = " + data);
-                function.onCallBack("submitFromWeb exe, response data 中文 from Java");
-			}
 
-		});
 
-        User user = new User();
-        Location location = new Location();
-        location.address = "SDU";
-        user.location = location;
-        user.name = "大头鬼";
-
-        webView.callHandler("functionInJs", new Gson().toJson(user), new CallBackFunction() {
-            @Override
-            public void onCallBack(String data) {
-
-            }
-        });
+//        webView.callHandler("functionInJs", new Gson().toJson(user), new CallBackFunction() {
+//            @Override
+//            public void onCallBack(String data) {
+//
+//            }
+//        });
 
         webView.send("hello");
 
 	}
+
+	private void setBridgeHandle(){
+        //界面跳转
+        webView.registerHandler("route", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                WebViewResult result = new WebViewResult();
+                try {
+                    //Router.getInstance().openUrl(data);
+                    Uri uri = Uri.parse(data);
+                    if(TextUtils.equals(uri.getScheme(),"zze")){
+                        String lastPath = uri.getLastPathSegment();
+                    }
+                    result.setCode(WebViewResult.CODE_SUCCESS);
+                }catch (Exception e){
+                    result.setCode(WebViewResult.CODE_FAIL);
+                }finally {
+                    function.onCallBack(result.getResult());
+                }
+                //Log.i(TAG, "handler = submitFromWeb, data from web = " + data);
+                //function.onCallBack("submitFromWeb exe, response data 中文 from Java");
+            }
+
+        });
+        //分享
+        webView.registerHandler("share", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                WebViewResult result = new WebViewResult();
+                try {
+                    String url = JSONUtils.getString(data,"title","");
+                    String desc = JSONUtils.getString(data,"desc","");
+                    String link = JSONUtils.getString(data,"link","");
+                    String imgurl = JSONUtils.getString(data,"imgurl","");
+                    doShare(url,desc,link,imgurl);
+                    result.setCode(WebViewResult.CODE_SUCCESS);
+                }catch (Exception e){
+                    result.setCode(WebViewResult.CODE_FAIL);
+                }finally {
+                    function.onCallBack(result.getResult());
+                }
+            }
+
+        });
+        //获取数据
+        webView.registerHandler("getdata", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                WebViewResult<User> result = new WebViewResult<>();
+                try {
+                    String type = JSONUtils.getString(data,"type","");
+                    if(TextUtils.equals("1",type)){
+                        User user = new User();
+                        user.name = "Papa";
+                        user.phone = "134XXXXXXXX";
+                        user.token = "755fgw4twtr1g5gewq";
+                        user.userId = "5678995";
+                        result.setData(user);
+                    }
+                    result.setCode(WebViewResult.CODE_SUCCESS);
+                }catch (Exception e){
+                    result.setCode(WebViewResult.CODE_FAIL);
+                }finally {
+                    function.onCallBack(result.getResult());
+                }
+            }
+
+        });
+
+
+
+    }
+
+    private void doShare(String title,String desc,String link,String imgurl){
+        //doShare;
+    }
+
 
 	public void pickFile() {
 		Intent chooserIntent = new Intent(Intent.ACTION_GET_CONTENT);
